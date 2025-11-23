@@ -1,0 +1,238 @@
+import { Tag } from "@/types";
+import React, { useMemo, useState } from "react";
+import TagBadge from "./TagBadge";
+import {
+   Popover,
+   PopoverContent,
+   PopoverTrigger,
+} from "@radix-ui/react-popover";
+import { Button } from "../ui/button";
+import { Check, Plus, Search, Trash2 } from "lucide-react";
+import { Input } from "../ui/input";
+import { Label } from "@radix-ui/react-label";
+
+interface TagSelectorProps {
+   AVBLtags: Omit<Tag, "createdAt">[];
+   selectedTagsIds: number[];
+   onTagChange: (tagIds: number[]) => void; // setSettagids
+}
+
+const TAG_COLORS = [
+   "#8b5cf6", // purple
+   "#ec4899", // pink
+   "#06b6d4", // cyan
+   "#ef4444", // red
+   "#10b981", // green
+   "#f59e0b", // amber
+   "#6366f1", // indigo
+   "#14b8a6", // teal
+];
+
+export default function TagSelector({
+   AVBLtags,
+   selectedTagsIds,
+   onTagChange,
+}: TagSelectorProps) {
+   const [newTagName, setNewTagName] = useState("");
+   const [newTagColor, setNewTagColor] = useState(TAG_COLORS[0]);
+   const [isCreating, setIsCreating] = useState(false);
+   const [isPopOpen, setisPopOpen] = useState(false);
+   const [searchQuery, setSearchQuery] = useState("");
+
+   const SelectedTags =
+      selectedTagsIds &&
+      AVBLtags.filter((tag) => selectedTagsIds.includes(tag.id));
+
+   const filteredTags = useMemo(() => {
+      if (!searchQuery.trim()) return AVBLtags;
+
+      return AVBLtags.filter((tag) =>
+         tag.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+   }, [AVBLtags, searchQuery]);
+
+   const toggleTag = (tagId: number) => {
+      if (selectedTagsIds.includes(tagId)) {
+         onTagChange(selectedTagsIds.filter((id) => id !== tagId));
+      } else {
+         onTagChange([...selectedTagsIds, tagId]);
+      }
+   };
+
+   const handleCreateTag = () => {};
+   return (
+      <div className="flex flex-wrap gap-2 items-center">
+         {SelectedTags &&
+            SelectedTags.map((tag) => (
+               <TagBadge
+                  onRemove={() => toggleTag(tag.id)}
+                  tag={tag}
+                  key={tag.id}
+               />
+            ))}
+         <Popover open={isPopOpen} onOpenChange={setisPopOpen}>
+            <PopoverTrigger asChild>
+               <Button
+                  variant="outline"
+                  size={"sm"}
+                  className="gap-2 bg-transparent rounded-lg "
+               >
+                  <Plus size={"4"} />
+                  Add Tag
+               </Button>
+            </PopoverTrigger>
+            <PopoverContent
+               className="w-72 p-4 bg-card rounded-2xl"
+               align="start"
+            >
+               {!isCreating ? (
+                  <section className="">
+                     <Input
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onKeyDown={(e) => {
+                           if (e.key === "Enter") {
+                              e.preventDefault();
+                              setNewTagName(searchQuery);
+                              setIsCreating(true);
+                           }
+                        }}
+                        placeholder="Search or create tag…"
+                        className="h-9 text-sm"
+                     />
+                     <div className="space-y-2 max-h-50 overflow-y-auto mt-2">
+                        {AVBLtags.length === 0 ? (
+                           <p className="text-sm text-muted-foreground text-center py-4">
+                              No tags yet. Create one!
+                           </p>
+                        ) : filteredTags?.length === 0 ? (
+                           <p className="text-sm text-muted-foreground text-center py-4 font-medium">
+                              Click enter to Create "{searchQuery}"
+                           </p>
+                        ) : (
+                           <>
+                              {filteredTags?.map((tag) => {
+                                 const isSelected = selectedTagsIds?.includes(
+                                    tag.id
+                                 );
+                                 return (
+                                    <div
+                                       key={tag.id}
+                                       className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-accent transition-colors"
+                                    >
+                                       <div
+                                          className="flex flex-1 items-center gap-2"
+                                          onClick={() => toggleTag(tag.id)}
+                                       >
+                                          <div
+                                             className="h-3 w-3 rounded-full "
+                                             style={{
+                                                backgroundColor: tag.color,
+                                             }}
+                                          />
+                                          <span className="text-sm font-medium">
+                                             {tag.name}
+                                          </span>
+                                       </div>
+
+                                       <div className="flex items-center gap-2">
+                                          {isSelected && (
+                                             <Check className="h-4 w-4 " />
+                                          )}
+                                          <Trash2
+                                             className="h-4 w-4 "
+                                             onClick={() => {
+                                                if (confirm("delte")) {
+                                                   //TODO: delete tag
+                                                }
+                                             }}
+                                          />
+                                       </div>
+                                    </div>
+                                 );
+                              })}
+                           </>
+                        )}
+                     </div>
+                  </section>
+               ) : (
+                  <section className="h-64">
+                     <div className="space-y-2.5">
+                        <label className="text-sm font-medium text-muted-foreground">
+                           Tag Name
+                        </label>
+                        <Input
+                           value={newTagName}
+                           onChange={(e) => setNewTagName(e.target.value)}
+                           onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                 handleCreateTag();
+                              }
+                           }}
+                           placeholder="Tag Name here"
+                           className="h-9 text-sm"
+                        />
+                     </div>
+
+                     <div className="space-y-2">
+                        <Label className="text-sm font-medium text-muted-foreground">
+                           Color
+                        </Label>
+                        <div className="flex items-center gap-2">
+                           <div className="flex gap-2 flex-wrap flex-1">
+                              {TAG_COLORS.map((color) => (
+                                 <button
+                                    key={color}
+                                    onClick={() => setNewTagColor(color)}
+                                    className="h-8 w-8 rounded-lg border-2 transition-all hover:scale-110 p-0"
+                                    style={{
+                                       backgroundColor: color,
+                                       borderColor:
+                                          newTagColor === color
+                                             ? "#3b82f6"
+                                             : "transparent",
+                                    }}
+                                 />
+                              ))}
+                           </div>
+                           <div className="relative">
+                              <input
+                                 type="color"
+                                 value={newTagColor}
+                                 className="h-10 w-10 rounded-lg border-2 border-border cursor-pointer"
+                                 onChange={(e) =>
+                                    setNewTagColor(e.target.value)
+                                 }
+                              />
+                           </div>
+                           <div className="flex gap-2">
+                              <Button
+                                 size={"sm"}
+                                 onClick={handleCreateTag}
+                                 className="flex-1 h-8"
+                              >
+                                 Create
+                              </Button>
+                              <Button
+                                 size={"sm"}
+                                 variant={"outline"}
+                                 onClick={() => {
+                                    setIsCreating(false);
+                                    setNewTagName("");
+                                    setSearchQuery("");
+                                 }}
+                                 className="flex-1 h-8"
+                              >
+                                 Cancel
+                              </Button>
+                           </div>
+                        </div>
+                     </div>
+                  </section>
+               )}
+            </PopoverContent>
+         </Popover>
+      </div>
+   );
+}
+[];

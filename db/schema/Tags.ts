@@ -13,7 +13,7 @@ import { tasksTable } from "./Task";
 
 export const tagsTable = pgTable("tags", {
    id: serial("id").primaryKey(),
-   primary: boolean("primary").default(false).notNull(),
+   isSession: boolean("isSession").default(false).notNull(),
    name: text("name").notNull().unique(),
    color: text("color").notNull(),
    createdAt: timestamp("created_at").notNull().defaultNow(),

@@ -11,10 +11,10 @@ import { daysTable, tasksTable } from "./Task";
 
 export const sessionsTable = pgTable("sessions", {
    id: serial("id").primaryKey(),
-   title: text("title").notNull(),
+   title: text("title"),
    note: text("note"),
    startTime: timestamp("start_time").notNull(),
-   endTime: timestamp("end_time"),
+   endTime: timestamp("end_time").notNull(),
    // ref
    dayId: integer("day_id")
       .notNull()
