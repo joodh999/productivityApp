@@ -9,6 +9,10 @@ interface SessionCardProps {
    isLast: boolean;
 }
 
+//TODO: make the current time somewhat pop out
+// scroll down to current session card
+// some color
+
 export default function SessionCard({
    time,
    session,
@@ -29,8 +33,7 @@ export default function SessionCard({
                {time}
             </span>
             <span className="text-md text-muted-foreground">
-               {/* {session?.title} */}
-               {!isCont && session?.task?.title}
+               {!isCont && session?.title}
             </span>
          </div>
 
@@ -40,7 +43,7 @@ export default function SessionCard({
                   <span className="text-xs text-muted-foreground/70 flex items-center gap-1">
                      <CornerDownRight size={10} />
                      {/* {session.task.title} */}
-                     {session?.title}
+                     {session?.task?.title}
                   </span>
                )}
             </div>

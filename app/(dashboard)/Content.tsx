@@ -4,6 +4,7 @@ import { sessionService } from "@/lib/services/session-services";
 import { tagService } from "@/lib/services/tag-service";
 import { taskService } from "@/lib/services/task-service";
 import { console } from "inspector";
+import { da } from "zod/v4/locales";
 
 export default async function Content({ date }: { date: string | undefined }) {
    const targetDate = date ? new Date(date) : new Date();
@@ -15,7 +16,12 @@ export default async function Content({ date }: { date: string | undefined }) {
 
    return (
       <div className="flex h-screen">
-         <Sidebar sessions={sessions} tagsForForm={tags} tasksForForm={tasks} />
+         <Sidebar
+            sessions={sessions}
+            tagsForForm={tags}
+            tasksForForm={tasks}
+            day={day}
+         />
       </div>
    );
 }

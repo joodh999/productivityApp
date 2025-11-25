@@ -1,12 +1,15 @@
-import z, { promise } from "zod";
+"use server";
+import z, { promise, success } from "zod";
 import {
    CreateSessionInput,
    createSessionSchema,
+   UpdateSessionInput,
    updateSessionSchema,
 } from "../validations/session-validation";
 import { sessionService } from "../services/session-services";
 import { isPageStatic } from "next/dist/build/utils";
 import { revalidatePath } from "next/cache";
+import { error } from "console";
 
 type ActionResult<T> =
    | { sucess: true; data: T }
@@ -18,13 +21,15 @@ export async function createSession(
    data: CreateSessionInput
 ): Promise<ActionResult<{ id: number }>> {
    try {
+      console.log(data);
       const vaildated = createSessionSchema.parse(data);
-
+      console.log("parsed");
       const hasTimeConflit = await sessionService.checkTimeConflits(
          dayId,
          vaildated.startTime,
          vaildated.endTime
       );
+
       if (hasTimeConflit) {
          return {
             sucess: false,
@@ -59,16 +64,70 @@ export async function createSession(
    }
 }
 
-// export async function updateSession(sessionId:number, data: CreateSessionInput) {
+export async function updateSession(
+   sessionId: number,
+   data: UpdateSessionInput
+) {
+   try {
+      const validated = updateSessionSchema.parse(data);
 
-//     try {
-//         const validated = updateSessionSchema.parse(data)
+      const existing = await sessionService.getById(sessionId);
 
-//         if(data.startTime && data.endTime) {
-//         const hasTimeConflit =
-//         }
+      if (!existing) {
+         return {
+            success: false,
+            error: "Session Not Found",
+         };
+      }
 
-//     }catch (err) {
+      if (validated.startTime || validated.endTime) {
+         const startTime = validated.startTime || existing.startTime;
+         const endTime = validated.endTime || existing.endTime;
 
-//     }
-// }
+         const conflit = await sessionService.checkTimeConflits(
+            existing.dayId,
+            startTime,
+            endTime,
+            sessionId
+         );
+         if (conflit) {
+            return {
+               success: false,
+               errors: {
+                  startTime: [
+                     "This TimeSlot conflit with another Sessions Timeslot",
+                  ],
+               },
+            };
+         }
+      }
+      await sessionService.update(sessionId, validated);
+
+      if (validated.tagIds) {
+         await sessionService.updateTags(sessionId, validated.tagIds);
+      }
+      revalidatePath("/(dashboard)", "layout");
+
+      return { success: true, data: { id: sessionId } };
+   } catch (err) {
+      console.log("session update error", err);
+
+      if (err instanceof z.ZodError) {
+         console.log("update session Error,  zod ", err.issues);
+         return {
+            sucess: false,
+            errors: z.treeifyError(err),
+         };
+      }
+
+      return {
+         success: false,
+         error: "Failed to update session",
+      };
+   }
+}
+
+export async function DeleteSession(id: number) {
+   await sessionService.deleteById(id);
+   revalidatePath("/(dashboard)", "layout");
+}

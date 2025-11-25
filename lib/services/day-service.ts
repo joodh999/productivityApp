@@ -9,6 +9,7 @@ export const dayService = {
       let existingDay = await db.query.day.findFirst({
          where: eq(daysTable.date, parsed),
       });
+
       if (!existingDay) {
          const [newday] = await db
             .insert(daysTable)

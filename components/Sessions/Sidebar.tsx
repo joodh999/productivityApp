@@ -9,12 +9,14 @@ interface SidebarProps {
    sessions: sessionListItem[];
    tasksForForm: Pick<Task, "id" | "title">[];
    tagsForForm: Omit<Tag, "createdAt">[];
+   day: { id: number; date: string };
 }
 
 export default function Sidebar({
    sessions,
    tasksForForm,
    tagsForForm,
+   day,
 }: SidebarProps) {
    const [isFormOpen, setFormOpen] = useState(false);
    const [selectedSession, setSelectedSession] = useState<
@@ -23,7 +25,6 @@ export default function Sidebar({
    const [selectedTime, setSelectedTime] = useState("");
 
    const timeBlocks = generateTimeBlocks();
-   const day = sessions[0].startTime; //TODO: maybe this may not exits, for new day
    const blockduration = 30 * 60 * 1000; // in ms
 
    const handleFormClose = () => {
@@ -43,7 +44,7 @@ export default function Sidebar({
       <div className="w-64 border-r overflow-y-scroll">
          <div className="p-2 space-y-0.5">
             {timeBlocks.map((b) => {
-               const timeblock = blockToDate(b, day);
+               const timeblock = blockToDate(b, day.date);
                const block = timeblock.toLocaleString([], {
                   hour: "2-digit",
                   minute: "2-digit",
@@ -84,6 +85,7 @@ export default function Sidebar({
                session={selectedSession}
                tags={tagsForForm}
                tasks={tasksForForm}
+               day={day}
             />
          </div>
       </div>

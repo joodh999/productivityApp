@@ -1,13 +1,11 @@
 import { db } from "@/db/drizzle";
 import { sessionsTable } from "@/db/schema/Session";
-import { and, eq, gte, lte, ne, or } from "drizzle-orm";
+import { and, eq, gt, gte, lt, lte, ne, or } from "drizzle-orm";
 import {
    CreateSessionInput,
    UpdateSessionInput,
 } from "../validations/session-validation";
-import { sessionsTagsTable, tagsTable } from "@/db/schema/Tags";
-import { UnfoldHorizontal } from "lucide-react";
-import { boolean, file, object } from "zod";
+import { sessionsTagsTable } from "@/db/schema/Tags";
 
 export const sessionService = {
    async getListbyDay(dayId: number) {
@@ -42,6 +40,12 @@ export const sessionService = {
       return falettenSessions;
    },
 
+   async getById(sessionId: number) {
+      return db.query.session.findFirst({
+         where: eq(sessionsTable.id, sessionId),
+      });
+   },
+
    async create(dayId: number, data: CreateSessionInput) {
       const [session] = await db
          .insert(sessionsTable)
@@ -69,14 +73,15 @@ export const sessionService = {
       const updateData: Record<string, any> = {};
 
       if (data.title !== undefined) updateData.title = data.title;
-      if (data.startTime !== undefined) updateData.start_time = data.startTime;
-      if (data.endTime !== undefined) updateData.end_time = data.endTime;
+      if (data.startTime !== undefined) updateData.startTime = data.startTime;
+      if (data.endTime !== undefined) updateData.endTime = data.endTime;
       if (data.note !== undefined) updateData.note = data.note;
-      if (data.taskId !== undefined) updateData.task_id = data.taskId;
+      if (data.taskId !== undefined) updateData.taskId = data.taskId;
 
       if (Object.keys(updateData).length === 0) {
          return true;
       }
+      console.log(updateData);
 
       await db
          .update(sessionsTable)
@@ -120,30 +125,25 @@ export const sessionService = {
          conditions.push(ne(sessionsTable.id, excludeSessionId));
       }
 
-      const overlaps = [
-         // New session starts during existing session
-         and(
-            lte(sessionsTable.startTime, startTime),
-            gte(sessionsTable.endTime, startTime)
-         ),
-         // New session ends during existing session
-         and(
-            lte(sessionsTable.startTime, endTime),
-            gte(sessionsTable.endTime, endTime)
-         ),
-         // New session completely contains existing session
-         and(
-            gte(sessionsTable.startTime, startTime),
-            lte(sessionsTable.endTime, endTime)
-         ),
-      ];
-
       const conflicting = await db
          .select()
          .from(sessionsTable)
-         .where(and(...conditions, or(...overlaps)))
+         .where(
+            and(
+               ...conditions,
+               and(
+                  lt(sessionsTable.endTime, startTime),
+                  gt(sessionsTable.startTime, endTime)
+               )
+            )
+         )
          .limit(1);
 
       return conflicting.length > 0;
+   },
+
+   async deleteById(id: number) {
+      console.log(id);
+      await db.delete(sessionsTable).where(eq(sessionsTable.id, id));
    },
 };

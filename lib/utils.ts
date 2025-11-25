@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { date } from "zod";
 
 export function cn(...inputs: ClassValue[]) {
    return twMerge(clsx(inputs));
@@ -28,13 +29,15 @@ export function isDatabaseError(
    );
 }
 
-export function blockToDate(block: string, day: Date): Date {
+export function blockToDate(block: string, day: string): Date {
    const [hours, minutes] = block.split(":").map(Number);
+   const date = new Date(day);
 
+   // console.log("date ", date);
    return new Date(
-      day.getFullYear(),
-      day.getMonth(),
-      day.getDate(),
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate(),
       hours,
       minutes,
       0,

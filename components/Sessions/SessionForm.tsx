@@ -8,7 +8,7 @@ import {
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { useEffect, useState, useTransition } from "react";
-import { generateTimeBlocks, localTimeToUTC } from "@/lib/utils";
+import { blockToDate, generateTimeBlocks, localTimeToUTC } from "@/lib/utils";
 import {
    Select,
    SelectContent,
@@ -20,7 +20,20 @@ import { ArrowRight } from "lucide-react";
 import { Textarea } from "../ui/textarea";
 import TagSelector from "../Tag/TagSelector";
 import { Button } from "../ui/button";
-import { start } from "repl";
+
+import {
+   CreateSessionInput,
+   UpdateSessionInput,
+} from "@/lib/validations/session-validation";
+import { number, success } from "zod";
+import {
+   createSession,
+   DeleteSession,
+   updateSession,
+} from "@/lib/Actions/session-actions";
+import { Update } from "drizzle-orm";
+import { Value } from "@radix-ui/react-select";
+import { sessionService } from "@/lib/services/session-services";
 
 interface sessionFormProps {
    time: string;
@@ -29,6 +42,7 @@ interface sessionFormProps {
    onClose: () => void;
    tags: Omit<Tag, "createdAt">[];
    tasks: Pick<Task, "id" | "title">[];
+   day: { id: number; date: string };
 }
 
 export default function SessionForm({
@@ -38,32 +52,42 @@ export default function SessionForm({
    session,
    tags,
    tasks,
+   day,
 }: sessionFormProps) {
    const [title, setTitle] = useState("");
    const [startTime, setStartTime] = useState("");
    const [endTime, setEndTime] = useState("");
-   const [taskId, setTaskId] = useState("");
+   const [taskId, setTaskId] = useState<number | null>();
    const [note, setNote] = useState("");
    const [selectedTagIds, setSelctedTagIds] = useState<number[]>([]);
+
+   const [errors, setErros] = useState<Record<string, string[]>>({});
+   const [generalError, setGeneralError] = useState<string>();
    const [isPending, startTransition] = useTransition();
 
    const timeBlocks = generateTimeBlocks();
-   // const endTimePlaceholder = timeBlocks[timeBlocks.indexOf(time) + 1];
 
    useEffect(() => {
       if (session) {
          setTitle(session.title || "");
          setStartTime(time);
-         setEndTime(timeBlocks[timeBlocks.indexOf(time) + 1]);
-         setTaskId(String(session.task?.id) || "-1");
+         setEndTime(
+            session.endTime.toLocaleString([], {
+               hour: "2-digit",
+               minute: "2-digit",
+               hour12: false,
+            })
+         );
+         setTaskId(session.task?.id || null);
          setNote(session.note || "");
          setSelctedTagIds(session.tags.map((tag) => tag.id));
       } else {
          resetForm();
 
          setStartTime(time);
+         setEndTime(timeBlocks[timeBlocks.indexOf(time) + 1]);
       }
-   }, [isOpen]);
+   }, [isOpen, session]);
 
    const resetForm = (withtimeanddate?: boolean) => {
       setTitle("");
@@ -72,14 +96,70 @@ export default function SessionForm({
          setEndTime("");
       }
       setSelctedTagIds([]);
-      setTaskId("-1");
+      setTaskId(null);
       setNote("");
    };
 
-   const handleSubmit = (e: React.FormEvent) => {
+   const handeldelsession = async (e: React.FormEvent, id: number) => {
       e.preventDefault();
+      DeleteSession(id);
+      onClose();
+   };
 
-      const formStartTime = localTimeToUTC(session?.startTime, startTime);
+   const handleSubmit = (e: React.FormEvent) => {
+      //TODO: show error
+      e.preventDefault();
+      setErros({});
+      setGeneralError(undefined);
+
+      const date = new Date(day.date);
+      const formStartTime = localTimeToUTC(date, startTime);
+      const formEndTime = localTimeToUTC(date, endTime);
+
+      startTransition(async () => {
+         let result;
+         if (session) {
+            const updatedData: UpdateSessionInput = {};
+
+            if (title !== session.title) updatedData.title = title;
+            if (formStartTime.getTime() !== session.startTime.getTime())
+               updatedData.startTime = formStartTime;
+            if (formEndTime.getTime() !== session.endTime.getTime())
+               updatedData.endTime = formEndTime;
+            if (note.trim() !== (session.note || ""))
+               updatedData.note = note || null;
+
+            const existingTagIds = session.tags.map((t) => t.id).sort();
+            const newTagIds = [...selectedTagIds].sort();
+            if (JSON.stringify(existingTagIds) !== JSON.stringify(newTagIds)) {
+               updatedData.tagIds = selectedTagIds;
+            }
+
+            if (Number(taskId) !== session.task?.id)
+               updatedData.taskId = taskId;
+
+            console.log(updatedData);
+            result = await updateSession(session.id, updatedData);
+         } else {
+            // Create
+            const CreateData: CreateSessionInput = {
+               title,
+               startTime: formStartTime,
+               endTime: formEndTime,
+               note: note.trim() ? note : undefined,
+               tagIds: selectedTagIds,
+               taskId: taskId !== null ? Number(taskId) : undefined,
+            };
+            result = await createSession(day.id, CreateData);
+         }
+
+         if (!session) {
+            resetForm();
+            onClose();
+         }
+
+         console.log(result);
+      });
    };
    return (
       <Dialog open={isOpen} onOpenChange={onClose}>
@@ -135,12 +215,21 @@ export default function SessionForm({
 
                <div className="space-y-3">
                   <Label>Link to Task</Label>
-                  <Select value={taskId} onValueChange={setTaskId}>
+                  <Select
+                     value={taskId === null ? "none" : String(taskId)}
+                     onValueChange={(value) => {
+                        if (value === "none") {
+                           setTaskId(null);
+                        } else {
+                           setTaskId(Number(value));
+                        }
+                     }}
+                  >
                      <SelectTrigger className="min-w-sm">
                         <SelectValue placeholder="None (standalone session)" />
                      </SelectTrigger>
                      <SelectContent>
-                        <SelectItem value="-1">
+                        <SelectItem value="none">
                            None (standalone session)
                         </SelectItem>
                         {tasks.map((task) => (
@@ -173,7 +262,12 @@ export default function SessionForm({
 
                <div className="flex justify-end gap-2">
                   {session && (
-                     <Button variant="destructive">Cancel Session</Button>
+                     <Button
+                        variant="destructive"
+                        onClick={(e) => handeldelsession(e, session.id)}
+                     >
+                        Cancel Session
+                     </Button>
                   )}
 
                   <Button
