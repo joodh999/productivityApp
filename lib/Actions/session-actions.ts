@@ -21,9 +21,9 @@ export async function createSession(
    data: CreateSessionInput
 ): Promise<ActionResult<{ id: number }>> {
    try {
-      console.log(data);
+      // console.log(data);
       const vaildated = createSessionSchema.parse(data);
-      console.log("parsed");
+      // console.log("parsed");
       const hasTimeConflit = await sessionService.checkTimeConflits(
          dayId,
          vaildated.startTime,

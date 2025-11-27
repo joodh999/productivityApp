@@ -1,10 +1,9 @@
 import Sidebar from "@/components/Sessions/Sidebar";
+import TaskList from "@/components/Tasks/TaskList";
 import { dayService } from "@/lib/services/day-service";
 import { sessionService } from "@/lib/services/session-services";
 import { tagService } from "@/lib/services/tag-service";
 import { taskService } from "@/lib/services/task-service";
-import { console } from "inspector";
-import { da } from "zod/v4/locales";
 
 export default async function Content({ date }: { date: string | undefined }) {
    const targetDate = date ? new Date(date) : new Date();
@@ -14,6 +13,8 @@ export default async function Content({ date }: { date: string | undefined }) {
    const tags = await tagService.getAllTagsForSessionForm();
    const tasks = await taskService.getTasksforSessionForm();
 
+   const tasklistTask = await taskService.getTaskForDay(day);
+
    return (
       <div className="flex h-screen">
          <Sidebar
@@ -22,6 +23,11 @@ export default async function Content({ date }: { date: string | undefined }) {
             tasksForForm={tasks}
             day={day}
          />
+         <div>
+            <header className="justify-end h-10"></header>
+            <TaskList day={day} Tasks={tasklistTask} />
+         </div>
+         <div className="w-64"></div>
       </div>
    );
 }

@@ -138,7 +138,6 @@ export default function SessionForm({
             if (Number(taskId) !== session.task?.id)
                updatedData.taskId = taskId;
 
-            console.log(updatedData);
             result = await updateSession(session.id, updatedData);
          } else {
             // Create
