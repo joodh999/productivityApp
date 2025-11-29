@@ -1,26 +1,34 @@
+"use server";
 import { revalidatePath } from "next/cache";
 import { taskService } from "../services/task-service";
 import { createSessionSchema } from "../validations/session-validation";
 import {
-   createTask,
-   createTaskSchema,
+   insertTaskWTags,
    createTaskWTags,
 } from "../validations/task-validation";
 import z from "zod";
+import { dayService } from "../services/day-service";
 
 type ActionResult<T> =
    | { sucess: true; data: T }
    | { sucess: false; error: string }
    | { sucess: false; errors: Record<string, string[]> };
 
-export async function createSession(
-   dayId: number,
-   data: createTaskWTags
+export async function createTaskAction(
+   data: insertTaskWTags,
+   DateString?: string
 ): Promise<ActionResult<{ id: number }>> {
    try {
+      console.log("create task action");
       const { tagIds, ...task } = createTaskWTags.parse(data);
 
-      const newtask = await taskService.create(dayId, task);
+      let day;
+      if (!task.dayId && DateString) {
+         day = await dayService.getorCreate(new Date(DateString));
+      }
+
+      const newtask = await taskService.create(task, day?.id);
+      console.log(newtask);
 
       if (tagIds?.length > 0) {
          await taskService.linkTags(newtask.id, tagIds);

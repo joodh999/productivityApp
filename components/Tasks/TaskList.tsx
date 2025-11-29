@@ -1,5 +1,5 @@
 "use client";
-import { Task, TaskWSubtasks } from "@/types";
+import { Tag, Task, TaskWSubtasks } from "@/types";
 import { isToday, parseISO, format } from "date-fns";
 import { Button } from "../ui/button";
 import TaskCard from "./TaskCard";
@@ -9,16 +9,17 @@ import TaskForm from "./TaskForm";
 interface TaskListProps {
    Tasks: TaskWSubtasks[];
    day: { id: number; date: string };
+   tagsForForm: Omit<Tag, "createdAt">[];
 }
 
-export default function TaskList({ Tasks, day }: TaskListProps) {
+export default function TaskList({ Tasks, day, tagsForForm }: TaskListProps) {
    const ParsedDate = parseISO(day.date);
    const [isFormOpen, setFormOpen] = useState(false);
 
    const isToday = true; // for test
 
    return (
-      <div className="p-5 min-w-4xl">
+      <div className="p-5 min-w-4xl  ">
          {/* isToday(ParsedDate)  */}
          <header className="flex items-center justify-between">
             {isToday ? (
@@ -54,6 +55,7 @@ export default function TaskList({ Tasks, day }: TaskListProps) {
             day={day}
             isOpen={isFormOpen}
             onClose={() => setFormOpen(false)}
+            tags={tagsForForm}
          />
       </div>
    );

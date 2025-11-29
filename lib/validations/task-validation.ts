@@ -6,5 +6,5 @@ export const createTaskSchema = createInsertSchema(tasksTable);
 export const createTaskWTags = createTaskSchema.extend({
    tagIds: z.array(z.number()),
 });
-export type createTask = z.infer<typeof createTaskSchema>;
-export type createTaskWTags = z.infer<typeof createTaskWTags>;
+export type insertTask = z.infer<typeof createTaskSchema>;
+export type insertTaskWTags = z.infer<typeof createTaskWTags>;

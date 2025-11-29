@@ -1,38 +1,71 @@
 "use client";
-import React, { useState, useTransition } from "react";
+import React, { useEffect, useState, useTransition } from "react";
 import { Dialog, DialogContent, DialogHeader } from "../ui/dialog";
-import { isPromise } from "util/types";
 import { DialogTitle } from "@radix-ui/react-dialog";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
 import { DatePicker } from "../misc/DatePicker";
+import TagSelector from "../Tag/TagSelector";
+import { Tag } from "@/types";
+import { Button } from "../ui/button";
+import { insertTaskWTags } from "@/lib/validations/task-validation";
+import { createTaskAction } from "@/lib/Actions/task-actions";
 
 interface TaskFormProps {
    day: { id: number; date: string };
    isOpen: boolean;
    onClose: () => void;
+   tags: Omit<Tag, "createdAt">[];
 }
 
-// id: z.ZodOptional<z.ZodInt>;
-//     title: z.ZodString;
-//     description: z.ZodOptional<z.ZodNullable<z.ZodString>>;
-//     dueDate: z.ZodOptional<z.ZodNullable<z.ZodString>>;
-//     completed: z.ZodOptional<z.ZodBoolean>;
-//     createdAt: z.ZodOptional<z.ZodDate>;
-//     dayId: z.ZodOptional<z.ZodNullable<z.ZodInt>>;
-//     tagIds: z.ZodArray<z.ZodNumber>;
-
-export default function TaskForm({ day, isOpen, onClose }: TaskFormProps) {
+export default function TaskForm({
+   day: DayProp,
+   isOpen,
+   onClose,
+   tags,
+}: TaskFormProps) {
    const [title, setTitle] = useState("");
    const [description, setDescription] = useState("");
    const [dueDate, setDueDate] = useState("");
+   const [day, setDay] = useState("");
    const [selectedTagIds, setSelctedTagIds] = useState<number[]>([]);
-   const [dayId, setDayId] = useState("");
 
    const [errors, setErros] = useState<Record<string, string[]>>({});
    const [generalError, setGeneralError] = useState<string>();
    const [isPending, startTransition] = useTransition();
+
+   const resetForm = () => {
+      setTitle("");
+      setDescription("");
+      setDueDate("");
+      setDay(new Date(DayProp.date).toISOString().split("T")[0]);
+   };
+
+   useEffect(() => {
+      resetForm();
+   }, []);
+
+   const handleSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      console.log(dueDate);
+
+      startTransition(async () => {
+         const CreateData: insertTaskWTags = {
+            title: title,
+            description: description,
+            tagIds: selectedTagIds,
+            dueDate: dueDate,
+         };
+         const result = await createTaskAction(CreateData, day);
+
+         if (result.sucess) {
+            onClose();
+            resetForm();
+         }
+         console.log("Failed to create task ", result);
+      });
+   };
 
    return (
       <Dialog open={isOpen} onOpenChange={onClose}>
@@ -52,7 +85,7 @@ export default function TaskForm({ day, isOpen, onClose }: TaskFormProps) {
                <div className="space-y-3">
                   <Label>Description</Label>
                   <Textarea
-                     rows={2}
+                     rows={4}
                      value={description}
                      onChange={(e) => setDescription(e.target.value)}
                      placeholder="Describe your Task"
@@ -61,9 +94,9 @@ export default function TaskForm({ day, isOpen, onClose }: TaskFormProps) {
                <div className="space-y-3 flex justify-between">
                   <DatePicker
                      label="Day"
-                     // value={}
+                     value={day ? new Date(day) : new Date(DayProp.date)}
                      onChange={(d) =>
-                        setDayId(d ? d.toISOString().split("T")[0] : "")
+                        setDay(d ? d.toISOString().split("T")[0] : "")
                      }
                   />
                   <DatePicker
@@ -74,7 +107,19 @@ export default function TaskForm({ day, isOpen, onClose }: TaskFormProps) {
                      }
                   />
                </div>
-               <div></div>
+               <div>
+                  <TagSelector
+                     AVBLtags={tags}
+                     onTagChange={setSelctedTagIds}
+                     selectedTagsIds={selectedTagIds}
+                  />
+               </div>
+
+               <div className="flex justify-end">
+                  <Button onClick={handleSubmit}>
+                     {isPending ? "Creating..." : "Create"}
+                  </Button>
+               </div>
             </form>
          </DialogContent>
       </Dialog>

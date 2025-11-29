@@ -19,4 +19,10 @@ export const dayService = {
       }
       return existingDay;
    },
+
+   async getDaybyString(date: string) {
+      return await db.query.day.findFirst({
+         where: eq(daysTable.date, date),
+      });
+   },
 };

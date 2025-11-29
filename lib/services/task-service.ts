@@ -2,7 +2,7 @@ import TaskList from "@/components/Tasks/TaskList";
 import { db } from "@/db/drizzle";
 import { tasksTable } from "@/db/schema/Task";
 import { desc, eq, or } from "drizzle-orm";
-import { createTask } from "../validations/task-validation";
+import { insertTask } from "../validations/task-validation";
 import { tasksTagsTable } from "@/db/schema/Tags";
 
 export const taskService = {
@@ -31,14 +31,15 @@ export const taskService = {
       return tasks;
    },
 
-   async create(dayId: number, task: createTask) {
+   async create(task: insertTask, dayId?: number) {
+      console.log("service task", task);
       const [newTask] = await db
          .insert(tasksTable)
          .values({
             title: task.title,
-            dayId: dayId,
+            dayId: task.dayId || dayId,
             description: task.description,
-            dueDate: task.dueDate,
+            dueDate: task.dueDate ? task.dueDate : null,
          })
          .returning();
       return newTask;

@@ -10,17 +10,19 @@ import {
    Circle,
    EllipsisVertical,
 } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 
 interface TaskCardprops {
    task: TaskWSubtasks;
 }
-//TODO: onhover show remove (from today) , expend card, 
+//TODO: onhover show remove (from today) , expend card, delete etc
+//TODO: subtask and task completion
+
 export default function TaskCard({ task }: TaskCardprops) {
    const [completed, setcompleted] = useState(task.completed);
    const [expended, setExpended] = useState(true);
    return (
-
       <main className="bg-card rounded-lg border hover:shadow-lg p-4">
          <section className="flex items-center justify-between ">
             <div className="flex items-start gap-3 flex-1">
@@ -31,9 +33,11 @@ export default function TaskCard({ task }: TaskCardprops) {
                      <Circle className="w-5 h-5 text-gray-400 hover:text-gray-600" />
                   )}
                </button>
-               <h2 className="text-2xl font-semibold font-mono">
-                  {task.title}
-               </h2>
+               <Link href={"a"}>
+                  <h2 className="text-2xl font-semibold font-mono hover:underline">
+                     {task.title}
+                  </h2>
+               </Link>
             </div>
 
             <button className="not-hover:opacity-0">

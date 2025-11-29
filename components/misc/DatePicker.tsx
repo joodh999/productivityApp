@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Label } from "../ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
-import { ChevronDownIcon } from "lucide-react";
+import { ChevronDownIcon, X } from "lucide-react";
 import { Button } from "../ui/button";
 import { Calendar } from "../ui/calendar";
+import { format } from "date-fns";
 
 interface DatePickerProps {
    label: string;
@@ -23,7 +24,8 @@ export function DatePicker({ label, value, onChange }: DatePickerProps) {
                   variant="outline"
                   className="w-48 justify-between font-normal"
                >
-                  {value ? value.toLocaleDateString() : "Select date"}
+                  {/* {value ? value.toLocaleDateString() : "Select date"} */}
+                  {value ? format(value, "dd MMMM") : "Select Date"}
                   <ChevronDownIcon />
                </Button>
             </PopoverTrigger>
